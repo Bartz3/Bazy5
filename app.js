@@ -69,12 +69,26 @@ async function Zadanie3() {
         await client.close();
     }
 }
-// Wolne, nie wiem czy działa, pozdrawiam
+// Stworzenie indexów, żeby przyspieszyć zad4
+// Indeks na startYear i genres w kolekcji Title
+//  titleCollection.createIndex({ startYear: 1, genres: 1 });
+
+// // Indeks na tconst w kolekcji Title
+//  titleCollection.createIndex({ tconst: 1 });
+
+// // Indeks na tconst w kolekcji Rating
+//  ratingCollection.createIndex({ tconst: 1 });
+
 async function Zadanie4() {
     try {
 
-        const documentary2010_12Count = await titleCollection.countDocuments(
-            { startYear: { $in: [2010, 2011, 2012] }, genres: { $regex: "Documentary" } },
+        const FIVEdocumentary2010_12 = await titleCollection.aggregate([
+            {
+                $match: {
+                    startYear: { $in: [2010, 2011, 2012] },
+                    genres: { $regex: "Documentary", $options: "i" }
+                }
+            },
             {
                 $lookup: {
                     from: "Rating",
@@ -82,33 +96,37 @@ async function Zadanie4() {
                     foreignField: "tconst",
                     as: "joinRating"
                 }
+            },
+            {
+                $unwind: "$joinRating"
+            },
+            {
+                $project: {
+                    primaryTitle: 1,
+                    startYear: 1,
+                    avgRating: "$joinRating.averageRating",
+                    _id: 0
+                }
+            },
+            {
+                $sort: { avgRating: -1 }
+            },
+            {
+                $limit: 5
             }
-        );
-        console.log("Documents count: " + documentary2010_12Count);
-
-
-        const documentary2010_12 = titleCollection.aggregate([
-            { $match: { startYear: { $in: [2010, 2011, 2012] }, genres: { $regex: "Documentary" } } },
-            {
-                $lookup: {
-                    from: "Rating",
-                    localField: "tconst",
-                    foreignField: "tconst",
-                    as: "joinRating"
-                }
-            }]
-        ).project({ primaryTitle: 1, startYear: 1, avgRating: '$joinRating.averageRating' })
-            .sort({ avgRating: -1 })
-            .limit(5);
-
-        const resultsArray = await documentary2010_12.toArray();
-        for (const titleType of resultsArray) {
-            console.log(titleType);
-        }
+        ]).toArray();
+        
+        console.log(FIVEdocumentary2010_12);
+        
+        // const resultsArray = await documentary2010_12.toArray();
+        // for (const titleType of resultsArray) {
+        //     console.log(titleType);
+        // }
     } finally {
         await client.close();
     }
 }
+ Zadanie4()
 
 // nameCollection.createIndex({primaryName:"text"})
 // const nameIndexes = await nameCollection.indexes();
@@ -300,7 +318,7 @@ console.log(`${result.deletedCount} movies  was deleted`);
 // Zadanie10()
 // Zadanie11()
 // Zadanie12()
-Zadanie13()
+// Zadanie13()
 
 
 
